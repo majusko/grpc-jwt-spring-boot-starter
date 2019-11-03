@@ -1,7 +1,9 @@
 language: java
-sudo: false # faster builds
-
-script: "mvn clean:install"
-
+jdk:
+  - oraclejdk8
+#sudo: false
+dist: trusty
 after_success:
   - bash <(curl -s https://codecov.io/bash)
+script:
+  - mvn install
