@@ -52,7 +52,7 @@ public class JwtService {
         return generateJwt(data, metadata);
     }
 
-    public String getInternal(JwtData data) {
+    public String getInternal() {
         if (LocalDateTime.now().minusSeconds(properties.getRefreshSec()).isAfter(internal.getExpiration())) {
             internal = new JwtToken(
                 generateJwt(new JwtData(INTERNAL_ACCOUNT, Sets.newHashSet(INTERNAL_ROLE)), metadata),

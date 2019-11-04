@@ -25,10 +25,11 @@ public class AuthServerInterceptor implements ServerInterceptor {
     private final static String GRPC_FIELD_MODIFIER = "_";
     private final static String BEARER = "Bearer";
     private final static String AUTHORIZATION = "Authorization";
-    private static Metadata.Key<String> AUTHORIZATION_METADATA_KEY =
-        Metadata.Key.of(AUTHORIZATION, ASCII_STRING_MARSHALLER);
     private static final ServerCall.Listener NOOP_LISTENER = new ServerCall.Listener() {
     };
+
+    public static Metadata.Key<String> AUTHORIZATION_METADATA_KEY =
+        Metadata.Key.of(AUTHORIZATION, ASCII_STRING_MARSHALLER);
 
     private final AllowedCollector allowedCollector;
     private final JwtService jwtService;
@@ -138,6 +139,9 @@ public class AuthServerInterceptor implements ServerInterceptor {
     }
 
     private <ReqT> void authorize(ReqT request, AuthContextData contextData, Allowed allowed) {
+
+        //TODO validate expiration
+
         if (allowed.getUserId() != null && !allowed.getUserId().isEmpty()) {
             try {
                 final Field field = request.getClass().getDeclaredField(allowed.getUserId() + GRPC_FIELD_MODIFIER);
