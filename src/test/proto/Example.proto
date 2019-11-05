@@ -1,0 +1,13 @@
+syntax = "proto3";
+package io.github.majusko.grpc.jwt.interceptor.proto;
+
+import "google/protobuf/empty.proto";
+
+service ExampleService {
+    rpc GetExample (GetExampleRequest) returns (google.protobuf.Empty);
+}
+
+message GetExampleRequest {
+    string userId = 1;
+    int32 data = 2;
+}
