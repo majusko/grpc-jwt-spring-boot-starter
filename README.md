@@ -120,7 +120,7 @@ We know 2 types of annotation: `@Allow` and `@Expose`
  You might want to reuse the exact same API for back-office and also for that particular user who created the orders.
  With `ownerField` you can check for the owner and also for some role if owner userId in JWT token is different._
 
-#### `@Expose` 
+#### `@Exposed` 
 * `environments` List of environments (Spring Profiles) where you can access the gRPC without checking for owner or roles.
 Use case: Debug endpoint for the client/front-end development team.
 
@@ -129,6 +129,7 @@ Use case: Debug endpoint for the client/front-end development team.
 public class ExampleServiceImpl extends ExampleServiceGrpc.ExampleServiceImplBase {
 
     @Allow(ownerField="userId", roles = GrpcRole.INTERNAL)
+    @Exposed(environments={"dev","qa"})
     public void getExample(GetExample request, StreamObserver<Empty> response) {
         //...
     }
