@@ -5,13 +5,13 @@
 
 Extending great [gRPC library](https://github.com/LogNet/grpc-spring-boot-starter) with Auth module. Easy implementation using a simple annotations similar to ones used in Spring Security module.
 
-##Quick Start
+## Quick Start
 
 Simple start consist only from 3 simple steps.
 
 (If you never used [gRPC library](https://github.com/LogNet/grpc-spring-boot-starter) before, have a look on this [basic setup](https://github.com/LogNet/grpc-spring-boot-starter#4-show-case) first.)
 
-####1. Add Maven dependency
+#### 1. Add Maven dependency
 
 ```xml
 <dependency>
@@ -21,7 +21,7 @@ Simple start consist only from 3 simple steps.
 </dependency>
 ```
 
-####2. Add `@Allow` annotation to your service method
+#### 2. Add `@Allow` annotation to your service method
 
 All you need to do is to annotate your method in the service implementation.
 
@@ -36,7 +36,7 @@ public class ExampleServiceImpl extends ExampleServiceGrpc.ExampleServiceImplBas
 }
 ```
 
-####3. Add interceptor to client
+#### 3. Add interceptor to client
 
 Just autowire already prepared `AuthClientInterceptor` bean and intercept your client. It will inject the internal token to every request by default.
 
@@ -216,7 +216,7 @@ The library is fully covered with integration tests which are also very useful a
 
 `GrpcJwtSpringBootStarterApplicationTest`
 
-##Contributing
+## Contributing
 
 All contributors are welcome. If you never contributed to the open-source, start with reading the [Github Flow](https://help.github.com/en/github/collaborating-with-issues-and-pull-requests/github-flow).
 
