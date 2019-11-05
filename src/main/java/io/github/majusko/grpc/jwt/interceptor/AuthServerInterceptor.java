@@ -2,7 +2,6 @@ package io.github.majusko.grpc.jwt.interceptor;
 
 import com.google.common.collect.Sets;
 import io.github.majusko.grpc.jwt.collector.Allowed;
-import io.github.majusko.grpc.jwt.collector.AllowedCollector;
 import io.github.majusko.grpc.jwt.exception.AuthException;
 import io.github.majusko.grpc.jwt.exception.UnauthenticatedException;
 import io.github.majusko.grpc.jwt.service.JwtService;
@@ -17,19 +16,13 @@ import java.lang.reflect.Field;
 import java.util.*;
 import java.util.stream.Collectors;
 
-import static io.grpc.Metadata.ASCII_STRING_MARSHALLER;
-
 @GRpcGlobalInterceptor
 public class AuthServerInterceptor implements ServerInterceptor {
 
     private final static String GRPC_FIELD_MODIFIER = "_";
     private final static String BEARER = "Bearer";
-    private final static String AUTHORIZATION = "Authorization";
     private static final ServerCall.Listener NOOP_LISTENER = new ServerCall.Listener() {
     };
-
-    public static Metadata.Key<String> AUTHORIZATION_METADATA_KEY =
-        Metadata.Key.of(AUTHORIZATION, ASCII_STRING_MARSHALLER);
 
     private final AllowedCollector allowedCollector;
     private final JwtService jwtService;
@@ -184,7 +177,7 @@ public class AuthServerInterceptor implements ServerInterceptor {
 
     private AuthContextData parseAuthContextData(Metadata metadata) {
         try {
-            final String authHeaderData = metadata.get(AUTHORIZATION_METADATA_KEY);
+            final String authHeaderData = metadata.get(GrpcHeader.AUTHORIZATION);
 
             if (authHeaderData == null) {
                 return null;

@@ -26,43 +26,52 @@ public class JwtService {
     public static final String JWT_ROLES = "jwt_roles";
 
     private static final String INTERNAL_ACCOUNT = "internal_account";
-    private static final String INTERNAL_ROLE = "internal_role";
+    private static final Double REFRESH_TIME_THRESHOLD = 0.2;
 
-    private final Environment env;
     private final GrpcJwtProperties properties;
 
     private JwtMetadata metadata;
     private JwtToken internal;
 
     public JwtService(Environment env, GrpcJwtProperties properties) {
-        this.env = env;
         this.properties = properties;
         this.metadata = JwtMetadata.builder()
             .env(Arrays.stream(env.getActiveProfiles()).collect(Collectors.toList()))
             .expirationSec(properties.getExpirationSec())
             .key(generateKey(properties.getSecret(), properties.getAlgorithm()))
             .build();
-        this.internal = new JwtToken(
-            generateJwt(new JwtData(INTERNAL_ACCOUNT, Sets.newHashSet(INTERNAL_ROLE)), metadata),
-            LocalDateTime.now().plusSeconds(properties.getExpirationSec())
-        );
+        this.internal = generateInternalToken(properties.getExpirationSec(), metadata);
     }
 
+    /**
+     * Generate fresh JWT token with specified roles and userId.
+     * @param data JwtData with data needed for JWT token generation.
+     * @return String version of your new JWT token
+     */
     public String generate(JwtData data) {
         return generateJwt(data, metadata);
     }
 
+    /**
+     * Get the internal JWT token and automatically refresh the token if it's expired.
+     * This token is used for inter-service communication.
+     * @return String version of your internal JWT token.
+     */
     public String getInternal() {
-        if (LocalDateTime.now().minusSeconds(properties.getRefreshSec()).isAfter(internal.getExpiration())) {
-            internal = new JwtToken(
-                generateJwt(new JwtData(INTERNAL_ACCOUNT, Sets.newHashSet(INTERNAL_ROLE)), metadata),
-                LocalDateTime.now().plusSeconds(properties.getExpirationSec())
-            );
+
+        final long refreshThresholdValue = Double.valueOf(properties.getExpirationSec() * REFRESH_TIME_THRESHOLD).longValue();
+
+        if (LocalDateTime.now().minusSeconds(refreshThresholdValue).isAfter(internal.getExpiration())) {
+            refreshInternalToken();
         }
 
         return internal.getToken();
     }
 
+    /**
+     * Get the key used for JWT token generation.
+     * @return generated SecretKey with configuration from application.properties.
+     */
     public SecretKey getKey() {
         return metadata.getKey();
     }
@@ -82,9 +91,20 @@ public class JwtService {
 
         return Jwts.builder()
             .setClaims(ourClaims)
-            .setSubject(data.getAccountId())
+            .setSubject(data.getUserId())
             .setIssuedAt(Date.from(LocalDateTime.now().atZone(ZoneId.systemDefault()).toInstant()))
             .setExpiration(Date.from(future.atZone(ZoneId.systemDefault()).toInstant()))
             .signWith(metadata.getKey()).compact();
+    }
+
+    private void refreshInternalToken() {
+        this.internal = generateInternalToken(properties.getExpirationSec(), metadata);
+    }
+
+    private JwtToken generateInternalToken(Long expirationSec, JwtMetadata jwtMetadata) {
+        return new JwtToken(
+            generateJwt(new JwtData(INTERNAL_ACCOUNT, Sets.newHashSet(GrpcRole.INTERNAL)), jwtMetadata),
+            LocalDateTime.now().plusSeconds(expirationSec)
+        );
     }
 }

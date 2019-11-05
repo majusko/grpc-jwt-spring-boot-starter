@@ -6,8 +6,7 @@ import org.springframework.boot.context.properties.ConfigurationProperties;
 @Data
 @ConfigurationProperties(prefix = "grpc.jwt")
 public class GrpcJwtProperties {
-    private String secret;
-    private String algorithm;
-    private Long expirationSec;
-    private Long refreshSec;
+    private String secret = "default";
+    private String algorithm = "HmacSHA256";
+    private Long expirationSec = 3600L;
 }

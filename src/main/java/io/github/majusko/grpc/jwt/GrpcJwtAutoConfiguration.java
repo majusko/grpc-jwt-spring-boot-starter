@@ -1,6 +1,6 @@
 package io.github.majusko.grpc.jwt;
 
-import io.github.majusko.grpc.jwt.collector.AllowedCollector;
+import io.github.majusko.grpc.jwt.interceptor.AuthClientInterceptor;
 import io.github.majusko.grpc.jwt.service.JwtService;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
@@ -14,11 +14,7 @@ public class GrpcJwtAutoConfiguration {
     private final Environment environment;
     private final GrpcJwtProperties grpcJwtProperties;
 
-    public GrpcJwtAutoConfiguration(
-        Environment environment,
-        GrpcJwtProperties grpcJwtProperties,
-        AllowedCollector allowedCollector
-    ) {
+    public GrpcJwtAutoConfiguration(Environment environment, GrpcJwtProperties grpcJwtProperties) {
         this.environment = environment;
         this.grpcJwtProperties = grpcJwtProperties;
     }
@@ -26,5 +22,10 @@ public class GrpcJwtAutoConfiguration {
     @Bean
     public JwtService jwtService() {
         return new JwtService(environment, grpcJwtProperties);
+    }
+
+    @Bean
+    public AuthClientInterceptor authClientInterceptor() {
+        return new AuthClientInterceptor(jwtService());
     }
 }

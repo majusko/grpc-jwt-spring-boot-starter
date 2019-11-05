@@ -28,7 +28,7 @@ public class AuthClientInterceptor implements ClientInterceptor {
 
                 final String internalToken = jwtService.getInternal();
 
-                headers.put(AuthServerInterceptor.AUTHORIZATION_METADATA_KEY, internalToken);
+                headers.put(GrpcHeader.AUTHORIZATION, internalToken);
 
                 final Listener<RespT> tracingResponseListener =
                     new ForwardingClientCallListener.SimpleForwardingClientCallListener<RespT>(responseListener) {

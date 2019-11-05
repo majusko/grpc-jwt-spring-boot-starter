@@ -5,18 +5,18 @@ import java.util.Set;
 
 public class JwtData {
 
-    private final String accountId;
+    private final String userId;
     private final Set<String> roles;
 
-    public JwtData(String accountId, Set<String> roles) {
-        Objects.requireNonNull(accountId);
+    public JwtData(String userId, Set<String> roles) {
+        Objects.requireNonNull(userId);
         Objects.requireNonNull(roles);
-        this.accountId = accountId;
+        this.userId = userId;
         this.roles = roles;
     }
 
-    public String getAccountId() {
-        return accountId;
+    public String getUserId() {
+        return userId;
     }
 
     public Set<String> getRoles() {

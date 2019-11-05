@@ -1,8 +1,9 @@
-package io.github.majusko.grpc.jwt.collector;
+package io.github.majusko.grpc.jwt.interceptor;
 
 import com.google.common.collect.Sets;
 import io.github.majusko.grpc.jwt.annotation.Allow;
 import io.github.majusko.grpc.jwt.annotation.Exposed;
+import io.github.majusko.grpc.jwt.collector.Allowed;
 import org.lognet.springboot.grpc.GRpcService;
 import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.stereotype.Component;
@@ -33,11 +34,11 @@ public class AllowedCollector implements BeanPostProcessor {
         return bean;
     }
 
-    public Optional<Allowed> getAllowedAuth(String methodName) {
+    Optional<Allowed> getAllowedAuth(String methodName) {
         return Optional.ofNullable(allowedAuth.get(methodName));
     }
 
-    public Optional<Set<String>> getExposedEnv(String methodName) {
+    Optional<Set<String>> getExposedEnv(String methodName) {
         return Optional.ofNullable(exposedEnv.get(methodName));
     }
 
