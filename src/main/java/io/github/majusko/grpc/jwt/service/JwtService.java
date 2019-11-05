@@ -1,10 +1,10 @@
 package io.github.majusko.grpc.jwt.service;
 
+import com.google.common.collect.Lists;
 import com.google.common.collect.Sets;
 import io.github.majusko.grpc.jwt.GrpcJwtProperties;
 import io.github.majusko.grpc.jwt.service.dto.JwtData;
 import io.github.majusko.grpc.jwt.service.dto.JwtMetadata;
-import io.github.majusko.grpc.jwt.service.dto.JwtRoles;
 import io.github.majusko.grpc.jwt.service.dto.JwtToken;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
@@ -86,7 +86,7 @@ public class JwtService {
         final LocalDateTime future = LocalDateTime.now().plusSeconds(metadata.getExpirationSec());
         final Claims ourClaims = Jwts.claims();
 
-        ourClaims.put(JWT_ROLES, new JwtRoles(data.getRoles()));
+        ourClaims.put(JWT_ROLES, Lists.newArrayList(data.getRoles()));
         ourClaims.put(TOKEN_ENV, metadata.getEnv());
 
         return Jwts.builder()

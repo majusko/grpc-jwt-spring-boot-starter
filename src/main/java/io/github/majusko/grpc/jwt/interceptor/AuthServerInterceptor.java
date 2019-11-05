@@ -5,7 +5,6 @@ import io.github.majusko.grpc.jwt.collector.Allowed;
 import io.github.majusko.grpc.jwt.exception.AuthException;
 import io.github.majusko.grpc.jwt.exception.UnauthenticatedException;
 import io.github.majusko.grpc.jwt.service.JwtService;
-import io.github.majusko.grpc.jwt.service.dto.JwtRoles;
 import io.grpc.*;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
@@ -116,6 +115,7 @@ public class AuthServerInterceptor implements ServerInterceptor {
             .anyMatch(exposedToEnvironments::contains);
 
         if (methodIsExposed) {
+            if(contextData == null) throw new AuthException("Missing JWT data.");
             final List<String> rawEnvironments = (List<String>) contextData
                 .getJwtClaims().get(JwtService.TOKEN_ENV, List.class);
 
@@ -128,13 +128,11 @@ public class AuthServerInterceptor implements ServerInterceptor {
 
     private <ReqT> void validateAllowedAnnotation(ReqT request, AuthContextData contextData, String methodName) {
         allowedCollector.getAllowedAuth(methodName)
-            .ifPresent(value -> authorize(request, Objects.requireNonNull(contextData), value));
+            .ifPresent(value -> authorizeOwnerOrRoles(request, contextData, value));
     }
 
-    private <ReqT> void authorize(ReqT request, AuthContextData contextData, Allowed allowed) {
-
-        //TODO validate expiration
-
+    private <ReqT> void authorizeOwnerOrRoles(ReqT request, AuthContextData contextData, Allowed allowed) {
+        if(contextData == null) throw new AuthException("Missing JWT data.");
         if (allowed.getUserId() != null && !allowed.getUserId().isEmpty()) {
             try {
                 final Field field = request.getClass().getDeclaredField(allowed.getUserId() + GRPC_FIELD_MODIFIER);
@@ -175,6 +173,7 @@ public class AuthServerInterceptor implements ServerInterceptor {
         }
     }
 
+    @SuppressWarnings("unchecked")
     private AuthContextData parseAuthContextData(Metadata metadata) {
         try {
             final String authHeaderData = metadata.get(GrpcHeader.AUTHORIZATION);
@@ -185,9 +184,9 @@ public class AuthServerInterceptor implements ServerInterceptor {
 
             final String token = authHeaderData.replace(BEARER, "").trim();
             final Claims jwtBody = Jwts.parser().setSigningKey(jwtService.getKey()).parseClaimsJws(token).getBody();
-            final JwtRoles roles = jwtBody.get(JwtService.JWT_ROLES, JwtRoles.class);
+            final List<String> roles = (List<String>) jwtBody.get(JwtService.JWT_ROLES, List.class);
 
-            return new AuthContextData(token, jwtBody.getSubject(), roles.getRoles(), jwtBody);
+            return new AuthContextData(token, jwtBody.getSubject(), Sets.newHashSet(roles), jwtBody);
         } catch (Exception e) {
             throw new UnauthenticatedException(e.getMessage());
         }

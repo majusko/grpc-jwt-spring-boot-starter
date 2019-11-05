@@ -5,6 +5,7 @@ import "google/protobuf/empty.proto";
 
 service ExampleService {
     rpc GetExample (GetExampleRequest) returns (google.protobuf.Empty);
+    rpc ListExample (GetExampleRequest) returns (google.protobuf.Empty);
 }
 
 message GetExampleRequest {
