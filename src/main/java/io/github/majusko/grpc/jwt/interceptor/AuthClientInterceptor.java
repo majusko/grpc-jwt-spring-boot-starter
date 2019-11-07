@@ -4,6 +4,7 @@ import io.github.majusko.grpc.jwt.service.JwtService;
 import io.grpc.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import sun.jvm.hotspot.debugger.ThreadContext;
 
 public class AuthClientInterceptor implements ClientInterceptor {
 

@@ -3,10 +3,7 @@ package io.github.majusko.grpc.jwt;
 import com.google.protobuf.Empty;
 import io.github.majusko.grpc.jwt.annotation.Allow;
 import io.github.majusko.grpc.jwt.annotation.Exposed;
-import io.github.majusko.grpc.jwt.interceptor.AllowedCollector;
-import io.github.majusko.grpc.jwt.interceptor.AuthClientInterceptor;
-import io.github.majusko.grpc.jwt.interceptor.AuthServerInterceptor;
-import io.github.majusko.grpc.jwt.interceptor.GrpcHeader;
+import io.github.majusko.grpc.jwt.interceptor.*;
 import io.github.majusko.grpc.jwt.interceptor.proto.Example;
 import io.github.majusko.grpc.jwt.interceptor.proto.ExampleServiceGrpc;
 import io.github.majusko.grpc.jwt.service.GrpcRole;
@@ -29,6 +26,7 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import java.io.IOException;
+import java.util.Optional;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest
@@ -95,6 +93,66 @@ public class GrpcJwtSpringBootStarterApplicationTest {
 
 		try {
 			final Empty ignored = injectedStub.getExample(Example.GetExampleRequest.newBuilder().build());
+		} catch (StatusRuntimeException e) {
+			status = e.getStatus();
+		}
+
+		Assert.assertEquals(Status.PERMISSION_DENIED.getCode(), status.getCode());
+	}
+
+	@Test
+	public void testWrongToken() throws IOException {
+
+		String token = jwtService.generate(new JwtData("some-user-id", "non-existing-role"));
+
+		token += "crwvvef";
+		final ManagedChannel channel = initTestServer(new ExampleService());
+		final ExampleServiceGrpc.ExampleServiceBlockingStub stub = ExampleServiceGrpc.newBlockingStub(channel);
+
+		final Metadata header = new Metadata();
+		header.put(GrpcHeader.AUTHORIZATION, token);
+
+		final ExampleServiceGrpc.ExampleServiceBlockingStub injectedStub = MetadataUtils.attachHeaders(stub, header);
+
+		Status status = Status.OK;
+
+		try {
+			final Empty ignored = injectedStub.getExample(Example.GetExampleRequest.newBuilder().build());
+		} catch (StatusRuntimeException e) {
+			status = e.getStatus();
+		}
+
+		Assert.assertEquals(Status.UNAUTHENTICATED.getCode(), status.getCode());
+	}
+
+
+
+	@Test
+	public void testMissingAuth() throws IOException {
+		final ManagedChannel channel = initTestServer(new ExampleService());
+		final ExampleServiceGrpc.ExampleServiceBlockingStub stub = ExampleServiceGrpc.newBlockingStub(channel);
+
+		Status status = Status.OK;
+
+		try {
+			final Empty ignored = stub.getExample(Example.GetExampleRequest.newBuilder().build());
+		} catch (StatusRuntimeException e) {
+			status = e.getStatus();
+		}
+
+		Assert.assertEquals(Status.PERMISSION_DENIED.getCode(), status.getCode());
+	}
+
+	@Test
+	public void testMissingCredentials() throws IOException {
+
+		final ManagedChannel channel = initTestServer(new ExampleService());
+		final ExampleServiceGrpc.ExampleServiceBlockingStub stub = ExampleServiceGrpc.newBlockingStub(channel);
+
+		Status status = Status.OK;
+
+		try {
+			final Empty ignored = stub.getExample(Example.GetExampleRequest.newBuilder().build());
 		} catch (StatusRuntimeException e) {
 			status = e.getStatus();
 		}
@@ -173,9 +231,21 @@ public class GrpcJwtSpringBootStarterApplicationTest {
 @GRpcService
 class ExampleService extends ExampleServiceGrpc.ExampleServiceImplBase {
 
+	private static final String ADMIN = "admin";
+
 	@Override
-	@Allow(ownerField = "userId", roles = {GrpcRole.INTERNAL, "admin"})
+	@Allow(ownerField = "userId", roles = {GrpcRole.INTERNAL, ADMIN})
 	public void getExample(Example.GetExampleRequest request, StreamObserver<Empty> response) {
+
+		AuthContextData authContext = GrpcContext.get().orElseThrow(RuntimeException::new);;
+
+		Assert.assertNotNull(authContext.getJwt());
+		Assert.assertTrue(authContext.getJwtClaims().size() > 0);
+
+		if(!request.getUserId().equals(authContext.getUserId())) {
+			Assert.assertTrue(authContext.getRoles().stream()
+				.anyMatch($ -> $.equals(GrpcRole.INTERNAL) || $.equals(ADMIN)));
+		}
 
 		response.onNext(Empty.getDefaultInstance());
 		response.onCompleted();

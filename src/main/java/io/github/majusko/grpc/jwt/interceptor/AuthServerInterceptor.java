@@ -141,7 +141,7 @@ public class AuthServerInterceptor implements ServerInterceptor {
 
                 authorizeOwner(userId, new HashSet<>(allowed.getRoles()), contextData);
             } catch (NoSuchFieldException | IllegalAccessException e) {
-                throw new AuthException("Missing field.", e);
+                throw new AuthException("Missing field.");
             }
         } else {
             validateRoles(new HashSet<>(allowed.getRoles()), contextData.getRoles());

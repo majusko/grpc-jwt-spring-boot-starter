@@ -131,6 +131,8 @@
                 <configuration>
                     <excludes>
                         <exclude>**/*Configuration.*</exclude>
+                        <exclude>**/*GrpcRole.*</exclude>
+                        <exclude>**/proto/**/*</exclude>
                     </excludes>
                 </configuration>
                 <executions>
