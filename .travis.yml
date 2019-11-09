@@ -11,7 +11,8 @@ deploy:
   provider: releases
   api_key:
     secure: Mef8otNBMl1IAdGyyp78UFJO6O++5HIWu8Q9gzd3a02HpV2Q8bEbgXSTXMB15ZyD4TMHv+B7sw+94XfJyUkqAHoyNJJcJIFL4v0L9wVdKgJm+gnOWlFR4ZFybOLqSpvpoQFj8W9Cdz2eF+P0LUyVcz0qLhYbe1m/IM+OVaaQMBBTZea7xIiHp+Qd2h5+eenqaYBnsrAMHGtv92KTswr3kw3wU2k4Dvh6Bd1GZVW75R+NTP7LMRuaEbVfgnYE07EsBqjBDoSXWQ4w+S/SPEJyDtHESBNd57RyW+zZaLDd5kWrhH+dI5My4m20znZoMIhbEiqdbQgy7EU5YFThDFgmx4qMqVEUI9cKBJAtsE4pTsOtNNjeBeQ+/AH/OQG4Nfp9yJVVgKjUnR9QORpdAFwKbbK4Xx5hVG0VVB2xDKqw5HH1MTVc9KkCtnOO5RQlJ9BCeHB9jXtvD4cdGyZAib9HbSEadpzd8MJFnpFlaErOuWvs+zOOPgr8pmNDnu/NP82V+hbgbRpBHxotgatVy+G6pEMLD4rQ8HykIHZEcYb3BcASZ4PUkig7yW+7DPzFwnmSJLlgE5H4C9mYQmy2vhyl5IXgHN4Gqnlwqt46KKuUiExI1qEjS0eUNYW7g0unhiELAvUDnwwt4d2N03d9R1eCYCWJgdUgOAIfpeRKW3GkR+4=
-  file: "${FILE_TO_UPLOAD}"
+  zip_file: "${FILE_TO_UPLOAD}"
   on:
     repo: majusko/grpc-jwt-spring-boot-starter
     tags: true
+    branch: master
