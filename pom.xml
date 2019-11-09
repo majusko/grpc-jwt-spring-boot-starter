@@ -4,7 +4,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>io.github.majusko</groupId>
     <artifactId>grpc-jwt-spring-boot-starter</artifactId>
-    <version>0.0.3-SNAPSHOT</version>
+    <version>1.0.0</version>
     <name>grpc-jwt-spring-boot-starter</name>
     <description>JWT Auth for your Grpc Spring Boot project</description>
 
@@ -153,4 +153,25 @@
             </plugin>
         </plugins>
     </build>
+
+    <licenses>
+        <license>
+            <name>Apache License, Version 2.0</name>
+            <url>http://www.apache.org/licenses/LICENSE-2.0.txt</url>
+            <distribution>repo</distribution>
+        </license>
+    </licenses>
+
+    <scm>
+        <connection>scm:git:https://github.com/majusko/grpc-jwt-spring-boot-starter.git</connection>
+        <url>https://github.com/majusko/grpc-jwt-spring-boot-starter</url>
+    </scm>
+
+    <developers>
+        <developer>
+            <name>Mario Kapusta</name>
+            <email>mariokapustaa@gmail.com</email>
+            <organizationUrl>https://github.com/majusko</organizationUrl>
+        </developer>
+    </developers>
 </project>
