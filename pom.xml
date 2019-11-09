@@ -130,6 +130,7 @@
                 <version>0.8.3</version>
                 <configuration>
                     <excludes>
+                        <exclude>**/*Application.*</exclude>
                         <exclude>**/*Configuration.*</exclude>
                         <exclude>**/*GrpcRole.*</exclude>
                         <exclude>**/proto/**/*</exclude>

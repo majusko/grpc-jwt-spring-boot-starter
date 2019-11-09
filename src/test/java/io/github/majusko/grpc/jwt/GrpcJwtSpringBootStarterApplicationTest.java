@@ -26,7 +26,6 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import java.io.IOException;
-import java.util.Optional;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest
@@ -237,7 +236,7 @@ class ExampleService extends ExampleServiceGrpc.ExampleServiceImplBase {
 	@Allow(ownerField = "userId", roles = {GrpcRole.INTERNAL, ADMIN})
 	public void getExample(Example.GetExampleRequest request, StreamObserver<Empty> response) {
 
-		AuthContextData authContext = GrpcContext.get().orElseThrow(RuntimeException::new);;
+		AuthContextData authContext = GrpcJwtContext.get().orElseThrow(RuntimeException::new);
 
 		Assert.assertNotNull(authContext.getJwt());
 		Assert.assertTrue(authContext.getJwtClaims().size() > 0);

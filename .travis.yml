@@ -2,13 +2,11 @@ language: java
 jdk:
 - oraclejdk8
 dist: trusty
-before_deploy:
-- mvn help:evaluate -N -Dexpression=project.version|grep -v '\['
-- export project_version=$(mvn help:evaluate -N -Dexpression=project.version|grep -v '\[')
 after_success:
 - bash <(curl -s https://codecov.io/bash)
-script:
-- mvn package
+before_deploy:
+- "mvn -DskipTests package"
+- export FILE_TO_UPLOAD=$(ls target/grpc-jwt-spring-boot-starter-*.jar)
 deploy:
   provider: releases
   api_key:
@@ -16,3 +14,4 @@ deploy:
   file: target/grpc-jwt-spring-boot-starter-$project_version.jar
   on:
     repo: majusko/grpc-jwt-spring-boot-starter
+    tags: true

@@ -2,7 +2,7 @@ package io.github.majusko.grpc.jwt.interceptor;
 
 import java.util.Optional;
 
-public class GrpcContext {
+public class GrpcJwtContext {
 
     private static final String CONTEXT_DATA = "context_data";
 

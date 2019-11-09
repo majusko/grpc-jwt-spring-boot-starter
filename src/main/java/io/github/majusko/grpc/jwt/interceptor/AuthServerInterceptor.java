@@ -43,7 +43,7 @@ public class AuthServerInterceptor implements ServerInterceptor {
     ) {
         try {
             final AuthContextData contextData = parseAuthContextData(metadata);
-            final Context context = Context.current().withValue(GrpcContext.CONTEXT_DATA_KEY, contextData);
+            final Context context = Context.current().withValue(GrpcJwtContext.CONTEXT_DATA_KEY, contextData);
 
             return buildListener(call, metadata, next, context, contextData);
         } catch (UnauthenticatedException e) {
