@@ -25,10 +25,12 @@ public class AuthClientInterceptor implements ClientInterceptor {
 
             @Override
             public void start(Listener<RespT> responseListener, final Metadata headers) {
+                final String authHeader = headers.get(GrpcHeader.AUTHORIZATION);
 
-                final String internalToken = jwtService.getInternal();
-
-                headers.put(GrpcHeader.AUTHORIZATION, internalToken);
+                if(authHeader == null || authHeader.isEmpty()) {
+                    final String internalToken = jwtService.getInternal();
+                    headers.put(GrpcHeader.AUTHORIZATION, internalToken);
+                }
 
                 final Listener<RespT> tracingResponseListener =
                     new ForwardingClientCallListener.SimpleForwardingClientCallListener<RespT>(responseListener) {
