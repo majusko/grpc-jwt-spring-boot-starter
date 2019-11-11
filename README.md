@@ -3,6 +3,7 @@
 [![Release](https://jitpack.io/v/majusko/grpc-jwt-spring-boot-starter.svg)](https://jitpack.io/#majusko/grpc-jwt-spring-boot-starter)
 [![Build Status](https://travis-ci.com/majusko/grpc-jwt-spring-boot-starter.svg?branch=master)](https://travis-ci.com/majusko/grpc-jwt-spring-boot-starter)
 [![Test Coverage](https://codecov.io/gh/majusko/grpc-jwt-spring-boot-starter/branch/master/graph/badge.svg)](https://codecov.io/gh/majusko/grpc-jwt-spring-boot-starter/branch/master)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 Extending great [gRPC library](https://github.com/LogNet/grpc-spring-boot-starter) with Auth module. Easy implementation using a simple annotations similar to ones used in Spring Security module.
 
