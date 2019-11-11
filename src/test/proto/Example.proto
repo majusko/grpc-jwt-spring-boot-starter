@@ -6,6 +6,9 @@ import "google/protobuf/empty.proto";
 service ExampleService {
     rpc GetExample (GetExampleRequest) returns (google.protobuf.Empty);
     rpc ListExample (GetExampleRequest) returns (google.protobuf.Empty);
+    rpc SaveExample (google.protobuf.Empty) returns (google.protobuf.Empty);
+    rpc DeleteExample (GetExampleRequest) returns (google.protobuf.Empty);
+    rpc SomeAction (GetExampleRequest) returns (google.protobuf.Empty);
 }
 
 message GetExampleRequest {
