@@ -1,5 +1,6 @@
 package io.github.majusko.grpc.jwt;
 
+import com.google.common.collect.Sets;
 import com.google.protobuf.Empty;
 import io.github.majusko.grpc.jwt.annotation.Allow;
 import io.github.majusko.grpc.jwt.annotation.Exposed;
@@ -22,15 +23,20 @@ import org.junit.runner.RunWith;
 import org.lognet.springboot.grpc.GRpcService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.core.env.Environment;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import java.io.IOException;
+import java.lang.reflect.Field;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest
 @ActiveProfiles("test")
 public class GrpcJwtSpringBootStarterApplicationTest {
+
+	@Autowired
+	private Environment environment;
 
 	@Autowired
 	private JwtService jwtService;
@@ -210,6 +216,155 @@ public class GrpcJwtSpringBootStarterApplicationTest {
 		Assert.assertEquals(Status.PERMISSION_DENIED.getCode(), status.getCode());
 	}
 
+	@Test
+	public void testSuccessExposeToTestEnvAnnotation() throws IOException {
+		final ManagedChannel channel = initTestServer(new ExampleService());
+		final Channel interceptedChannel = ClientInterceptors.intercept(channel, authClientInterceptor);
+		final ExampleServiceGrpc.ExampleServiceBlockingStub stub = ExampleServiceGrpc.newBlockingStub(interceptedChannel);
+
+		final Empty response = stub.listExample(Example.GetExampleRequest.newBuilder().build());
+
+		Assert.assertNotNull(response);
+	}
+
+	@Test
+	public void testNonExistingFieldInPayload() throws IOException {
+		final ManagedChannel channel = initTestServer(new ExampleService());
+		final Channel interceptedChannel = ClientInterceptors.intercept(channel, authClientInterceptor);
+		final ExampleServiceGrpc.ExampleServiceBlockingStub stub = ExampleServiceGrpc.newBlockingStub(interceptedChannel);
+
+		Status status = Status.OK;
+
+		try {
+			final Empty ignored = stub.saveExample(Empty.getDefaultInstance());
+		} catch (StatusRuntimeException e) {
+			status = e.getStatus();
+		}
+
+		Assert.assertEquals(Status.PERMISSION_DENIED.getCode(), status.getCode());
+	}
+
+	@Test
+	public void testDiffUserIdAndNonExistingRole() throws IOException {
+		final ManagedChannel channel = initTestServer(new ExampleService());
+		final Channel interceptedChannel = ClientInterceptors.intercept(channel, authClientInterceptor);
+		final ExampleServiceGrpc.ExampleServiceBlockingStub stub = ExampleServiceGrpc.newBlockingStub(interceptedChannel);
+
+		Status status = Status.OK;
+
+		try {
+			final Empty ignored = stub.deleteExample(Example.GetExampleRequest.getDefaultInstance());
+		} catch (StatusRuntimeException e) {
+			status = e.getStatus();
+		}
+
+		Assert.assertEquals(Status.PERMISSION_DENIED.getCode(), status.getCode());
+	}
+
+	@Test
+	public void testCustomTokenWithEmptyUserIdAndEmptyRoles() throws IOException {
+		final String token = jwtService.generate(new JwtData("random-user-id", Sets.newHashSet()));
+
+		final ManagedChannel channel = initTestServer(new ExampleService());
+		final ExampleServiceGrpc.ExampleServiceBlockingStub stub = ExampleServiceGrpc.newBlockingStub(channel);
+
+		final Metadata header = new Metadata();
+		header.put(GrpcHeader.AUTHORIZATION, token);
+
+		final ExampleServiceGrpc.ExampleServiceBlockingStub injectedStub = MetadataUtils.attachHeaders(stub, header);
+		final Example.GetExampleRequest request = Example.GetExampleRequest.newBuilder()
+			.setUserId("other-user-id").build();
+
+		Status status = Status.OK;
+
+		try {
+			final Empty ignore = injectedStub.getExample(request);
+		} catch (StatusRuntimeException e) {
+			status = e.getStatus();
+		}
+
+		Assert.assertEquals(Status.PERMISSION_DENIED.getCode(), status.getCode());
+	}
+
+	@Test
+	public void testEmptyUserIdInToken() throws IOException {
+		final String token = jwtService.generate(new JwtData("", Sets.newHashSet(ExampleService.ADMIN)));
+
+		final ManagedChannel channel = initTestServer(new ExampleService());
+		final ExampleServiceGrpc.ExampleServiceBlockingStub stub = ExampleServiceGrpc.newBlockingStub(channel);
+
+		final Metadata header = new Metadata();
+		header.put(GrpcHeader.AUTHORIZATION, token);
+
+		final ExampleServiceGrpc.ExampleServiceBlockingStub injectedStub = MetadataUtils.attachHeaders(stub, header);
+		final Example.GetExampleRequest request = Example.GetExampleRequest.newBuilder()
+			.setUserId("other-user-id").build();
+
+		Status status = Status.OK;
+
+		try {
+			final Empty ignore = injectedStub.getExample(request);
+		} catch (StatusRuntimeException e) {
+			status = e.getStatus();
+		}
+
+		Assert.assertEquals(Status.PERMISSION_DENIED.getCode(), status.getCode());
+	}
+
+	@Test
+	public void testExpiredToken() throws IOException, NoSuchFieldException, IllegalAccessException {
+
+		final GrpcJwtProperties customProperties = new GrpcJwtProperties();
+		final Field field = customProperties.getClass().getDeclaredField("expirationSec");
+		field.setAccessible(true);
+		field.set(customProperties, -10L);
+
+
+		final JwtService customJwtService = new JwtService(environment, customProperties);
+		final String token = customJwtService.generate(new JwtData("lala", Sets.newHashSet(ExampleService.ADMIN)));
+
+		final ManagedChannel channel = initTestServer(new ExampleService());
+		final Channel interceptedChannel = ClientInterceptors.intercept(channel, authClientInterceptor);
+		final ExampleServiceGrpc.ExampleServiceBlockingStub stub = ExampleServiceGrpc.newBlockingStub(interceptedChannel);
+
+		final Metadata header = new Metadata();
+		header.put(GrpcHeader.AUTHORIZATION, token);
+
+		final ExampleServiceGrpc.ExampleServiceBlockingStub injectedStub = MetadataUtils.attachHeaders(stub, header);
+		final Example.GetExampleRequest request = Example.GetExampleRequest.newBuilder()
+			.setUserId("other-user-id").build();
+
+		Status status = Status.OK;
+
+		try {
+			final Empty ignore = injectedStub.getExample(request);
+		} catch (StatusRuntimeException e) {
+			status = e.getStatus();
+		}
+
+		Assert.assertEquals(Status.UNAUTHENTICATED.getCode(), status.getCode());
+	}
+
+	@Test
+	public void testEmptyOwnerFieldInAnnotationSoRolesAreValidated() throws IOException {
+		final String token = jwtService
+			.generate(new JwtData("random-user-id", Sets.newHashSet(ExampleService.ADMIN)));
+
+		final ManagedChannel channel = initTestServer(new ExampleService());
+		final ExampleServiceGrpc.ExampleServiceBlockingStub stub = ExampleServiceGrpc.newBlockingStub(channel);
+
+		final Metadata header = new Metadata();
+		header.put(GrpcHeader.AUTHORIZATION, token);
+
+		final ExampleServiceGrpc.ExampleServiceBlockingStub injectedStub = MetadataUtils.attachHeaders(stub, header);
+		final Example.GetExampleRequest request = Example.GetExampleRequest.newBuilder()
+			.setUserId("other-user-id").build();
+
+		final Empty response = injectedStub.someAction(request);
+
+		Assert.assertNotNull(response);
+	}
+
 	private ManagedChannel initTestServer(BindableService service) throws IOException {
 
 		final String serverName = InProcessServerBuilder.generateName();
@@ -230,7 +385,7 @@ public class GrpcJwtSpringBootStarterApplicationTest {
 @GRpcService
 class ExampleService extends ExampleServiceGrpc.ExampleServiceImplBase {
 
-	private static final String ADMIN = "admin";
+	public static final String ADMIN = "admin";
 
 	@Override
 	@Allow(ownerField = "userId", roles = {GrpcRole.INTERNAL, ADMIN})
@@ -253,6 +408,30 @@ class ExampleService extends ExampleServiceGrpc.ExampleServiceImplBase {
 	@Override
 	@Exposed(environments = "test")
 	public void listExample(Example.GetExampleRequest request, StreamObserver<Empty> response) {
+
+		response.onNext(Empty.getDefaultInstance());
+		response.onCompleted();
+	}
+
+	@Override
+	@Allow(ownerField = "nonExistingField")
+	public void saveExample(Empty request, StreamObserver<Empty> response) {
+
+		response.onNext(Empty.getDefaultInstance());
+		response.onCompleted();
+	}
+
+	@Override
+	@Allow(ownerField = "userId")
+	public void deleteExample(Example.GetExampleRequest request, StreamObserver<Empty> response) {
+
+		response.onNext(Empty.getDefaultInstance());
+		response.onCompleted();
+	}
+
+	@Override
+	@Allow(ownerField = "", roles = {ADMIN})
+	public void someAction(Example.GetExampleRequest request, StreamObserver<Empty> response) {
 
 		response.onNext(Empty.getDefaultInstance());
 		response.onCompleted();

@@ -131,8 +131,9 @@
                 <configuration>
                     <excludes>
                         <exclude>**/*Application.*</exclude>
+                        <exclude>**/*Builder*</exclude>
+                        <exclude>**/*Properties.*</exclude>
                         <exclude>**/*Configuration.*</exclude>
-                        <exclude>**/*GrpcRole.*</exclude>
                         <exclude>**/proto/**/*</exclude>
                     </excludes>
                 </configuration>

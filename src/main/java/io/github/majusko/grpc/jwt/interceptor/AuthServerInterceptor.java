@@ -6,8 +6,8 @@ import io.github.majusko.grpc.jwt.exception.AuthException;
 import io.github.majusko.grpc.jwt.exception.UnauthenticatedException;
 import io.github.majusko.grpc.jwt.service.JwtService;
 import io.grpc.*;
-import io.jsonwebtoken.Claims;
-import io.jsonwebtoken.Jwts;
+import io.jsonwebtoken.*;
+import io.jsonwebtoken.security.SignatureException;
 import org.lognet.springboot.grpc.GRpcGlobalInterceptor;
 import org.springframework.core.env.Environment;
 
@@ -50,10 +50,6 @@ public class AuthServerInterceptor implements ServerInterceptor {
             call.close(Status.UNAUTHENTICATED.withDescription(e.getMessage()).withCause(e.getCause()), metadata);
             //noinspection unchecked
             return NOOP_LISTENER;
-        } catch (Exception e) {
-            call.close(Status.INTERNAL.withDescription(e.getMessage()).withCause(e.getCause()), metadata);
-            //noinspection unchecked
-            return NOOP_LISTENER;
         }
     }
 
@@ -76,10 +72,6 @@ public class AuthServerInterceptor implements ServerInterceptor {
                 return delegate;
             }
 
-            private void handlingException(Status status, Exception e) {
-                call.close(status.withDescription(e.getMessage()).withCause(e.getCause()), metadata);
-            }
-
             @Override
             public void onMessage(ReqT request) {
                 try {
@@ -90,12 +82,10 @@ public class AuthServerInterceptor implements ServerInterceptor {
 
                         delegate = customDelegate;
                     }
-                } catch (UnauthenticatedException e) {
-                    handlingException(Status.UNAUTHENTICATED, e);
                 } catch (AuthException e) {
-                    handlingException(Status.PERMISSION_DENIED, e);
-                } catch (Exception e) {
-                    handlingException(Status.INTERNAL, e);
+                    call.close(Status.PERMISSION_DENIED
+                        .withDescription(e.getMessage())
+                        .withCause(e.getCause()), metadata);
                 }
                 super.onMessage(request);
             }
@@ -162,11 +152,7 @@ public class AuthServerInterceptor implements ServerInterceptor {
             throw new AuthException("Endpoint does not have specified roles.");
         }
 
-        if (userRoles == null) {
-            throw new AuthException("User doesn't have any roles.");
-        }
-
-        requiredRoles.retainAll(userRoles);
+        requiredRoles.retainAll(Objects.requireNonNull(userRoles));
 
         if (requiredRoles.isEmpty()) {
             throw new AuthException("Missing required permission roles.");
@@ -187,8 +173,8 @@ public class AuthServerInterceptor implements ServerInterceptor {
             final List<String> roles = (List<String>) jwtBody.get(JwtService.JWT_ROLES, List.class);
 
             return new AuthContextData(token, jwtBody.getSubject(), Sets.newHashSet(roles), jwtBody);
-        } catch (Exception e) {
-            throw new UnauthenticatedException(e.getMessage());
+        } catch (JwtException | IllegalArgumentException e) {
+            throw new UnauthenticatedException(e.getMessage(), e);
         }
     }
 }
