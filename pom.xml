@@ -4,7 +4,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>io.github.majusko</groupId>
     <artifactId>grpc-jwt-spring-boot-starter</artifactId>
-    <version>1.0.0</version>
+    <version>1.0.2</version>
     <name>grpc-jwt-spring-boot-starter</name>
     <description>JWT Auth for your Grpc Spring Boot project</description>
 

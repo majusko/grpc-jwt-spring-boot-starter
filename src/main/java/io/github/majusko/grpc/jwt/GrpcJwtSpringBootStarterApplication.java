@@ -5,9 +5,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
 public class GrpcJwtSpringBootStarterApplication {
-
-	public static void main(String[] args) {
-		SpringApplication.run(GrpcJwtSpringBootStarterApplication.class, args);
-	}
-
+    public static void main(String[] args) {
+        SpringApplication.run(GrpcJwtSpringBootStarterApplication.class, args);
+    }
 }

@@ -4,10 +4,12 @@ import io.github.majusko.grpc.jwt.interceptor.AuthClientInterceptor;
 import io.github.majusko.grpc.jwt.service.JwtService;
 import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.ComponentScan;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.core.env.Environment;
 
 @Configuration
+@ComponentScan
 @EnableConfigurationProperties(GrpcJwtProperties.class)
 public class GrpcJwtAutoConfiguration {
 
