@@ -1,4 +1,4 @@
-# Spring boot starter for [gRPC framework](https://grpc.io/) with [JWT authorization](https://jwt.io/) 
+# Spring boot starter for [gRPC framework](https://grpc.io/) with [JWT authorization](https://jwt.io/) - gRPC Java JWT
 
 [![Release](https://jitpack.io/v/majusko/grpc-jwt-spring-boot-starter.svg)](https://jitpack.io/#majusko/grpc-jwt-spring-boot-starter)
 [![Build Status](https://travis-ci.com/majusko/grpc-jwt-spring-boot-starter.svg?branch=master)](https://travis-ci.com/majusko/grpc-jwt-spring-boot-starter)
