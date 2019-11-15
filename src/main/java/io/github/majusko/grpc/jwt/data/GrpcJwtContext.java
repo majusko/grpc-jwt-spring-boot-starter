@@ -1,10 +1,11 @@
-package io.github.majusko.grpc.jwt.interceptor;
+package io.github.majusko.grpc.jwt.data;
 
 import java.util.Optional;
 
 public class GrpcJwtContext {
 
-    private GrpcJwtContext(){}
+    private GrpcJwtContext() {
+    }
 
     private static final String CONTEXT_DATA = "context_data";
 

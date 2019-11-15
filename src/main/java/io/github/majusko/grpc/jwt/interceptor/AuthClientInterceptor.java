@@ -1,5 +1,6 @@
 package io.github.majusko.grpc.jwt.interceptor;
 
+import io.github.majusko.grpc.jwt.data.GrpcHeader;
 import io.github.majusko.grpc.jwt.service.JwtService;
 import io.grpc.*;
 import org.slf4j.Logger;

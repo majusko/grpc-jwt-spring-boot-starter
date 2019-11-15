@@ -3,7 +3,7 @@ package io.github.majusko.grpc.jwt.interceptor;
 import com.google.common.collect.Sets;
 import io.github.majusko.grpc.jwt.annotation.Allow;
 import io.github.majusko.grpc.jwt.annotation.Exposed;
-import io.github.majusko.grpc.jwt.collector.Allowed;
+import io.github.majusko.grpc.jwt.data.Allowed;
 import org.lognet.springboot.grpc.GRpcService;
 import org.springframework.beans.factory.config.BeanPostProcessor;
 import org.springframework.stereotype.Component;
