@@ -23,12 +23,18 @@ import org.junit.runner.RunWith;
 import org.lognet.springboot.grpc.GRpcService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Import;
+import org.springframework.context.annotation.Primary;
 import org.springframework.core.env.Environment;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.junit4.SpringRunner;
 
 import java.io.IOException;
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest
@@ -312,37 +318,38 @@ public class GrpcJwtSpringBootStarterApplicationTest {
 	}
 
 	@Test
-	public void testExpiredToken() throws IOException, NoSuchFieldException, IllegalAccessException {
+	public void testExpiredToken() throws IOException, NoSuchFieldException, IllegalAccessException,
+		NoSuchMethodException, InvocationTargetException, InterruptedException {
 
 		final GrpcJwtProperties customProperties = new GrpcJwtProperties();
 		final Field field = customProperties.getClass().getDeclaredField("expirationSec");
 		field.setAccessible(true);
-		field.set(customProperties, -10L);
+		field.set(customProperties, 1L);
 
+		final Field propertyField = jwtService.getClass().getDeclaredField("properties");
+		propertyField.setAccessible(true);
+		final GrpcJwtProperties existingProperties = (GrpcJwtProperties) propertyField.get(jwtService);
+		propertyField.set(jwtService, customProperties);
 
-		final JwtService customJwtService = new JwtService(environment, customProperties);
-		final String token = customJwtService.generate(new JwtData("lala", Sets.newHashSet(ExampleService.ADMIN)));
+		final Method refreshMethod = jwtService.getClass().getDeclaredMethod("refreshInternalToken");
+		refreshMethod.setAccessible(true);
+
+		refreshMethod.invoke(jwtService);
 
 		final ManagedChannel channel = initTestServer(new ExampleService());
 		final Channel interceptedChannel = ClientInterceptors.intercept(channel, authClientInterceptor);
 		final ExampleServiceGrpc.ExampleServiceBlockingStub stub = ExampleServiceGrpc.newBlockingStub(interceptedChannel);
-
-		final Metadata header = new Metadata();
-		header.put(GrpcHeader.AUTHORIZATION, token);
-
-		final ExampleServiceGrpc.ExampleServiceBlockingStub injectedStub = MetadataUtils.attachHeaders(stub, header);
 		final Example.GetExampleRequest request = Example.GetExampleRequest.newBuilder()
 			.setUserId("other-user-id").build();
 
-		Status status = Status.OK;
+		Thread.sleep(2000);
 
-		try {
-			final Empty ignore = injectedStub.getExample(request);
-		} catch (StatusRuntimeException e) {
-			status = e.getStatus();
-		}
+		final Empty response = stub.getExample(request);
 
-		Assert.assertEquals(Status.UNAUTHENTICATED.getCode(), status.getCode());
+		Assert.assertNotNull(response);
+
+		propertyField.set(jwtService, existingProperties);
+		refreshMethod.invoke(jwtService);
 	}
 
 	@Test
