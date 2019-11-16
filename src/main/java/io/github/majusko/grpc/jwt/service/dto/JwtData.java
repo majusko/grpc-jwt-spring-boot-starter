@@ -6,7 +6,6 @@ import java.util.Objects;
 import java.util.Set;
 
 public class JwtData {
-
     private final String userId;
     private final Set<String> roles;
 

@@ -25,33 +25,43 @@ public class AuthClientInterceptor implements ClientInterceptor {
         return new ForwardingClientCall.SimpleForwardingClientCall<ReqT, RespT>(next.newCall(method, callOptions)) {
 
             @Override
-            public void start(Listener<RespT> responseListener, final Metadata headers) {
-                final String authHeader = headers.get(GrpcHeader.AUTHORIZATION);
+            public void start(Listener<RespT> responseListener, final Metadata metadata) {
+                final Listener<RespT> tracingResponseListener = responseListener(responseListener);
 
-                if(authHeader == null || authHeader.isEmpty()) {
-                    final String internalToken = jwtService.getInternal();
-                    headers.put(GrpcHeader.AUTHORIZATION, internalToken);
-                }
-
-                final Listener<RespT> tracingResponseListener =
-                    new ForwardingClientCallListener.SimpleForwardingClientCallListener<RespT>(responseListener) {
-                        @Override
-                        public void onClose(Status status, Metadata metadata) {
-
-                            if (status.getCode().equals(Status.UNAUTHENTICATED.getCode())) {
-                                logger.error("Grpc call is unauthenticated.", status.getCause());
-                            }
-
-                            if (status.getCode().equals(Status.PERMISSION_DENIED.getCode())) {
-                                logger.error("Grpc call is unauthorized.", status.getCause());
-                            }
-
-                            super.onClose(status, metadata);
-                        }
-                    };
-
-                super.start(tracingResponseListener, headers);
+                super.start(tracingResponseListener, injectInternalToken(metadata));
             }
         };
+    }
+
+    private <RespT> ForwardingClientCallListener<RespT> responseListener(ClientCall.Listener<RespT> responseListener) {
+        return new ForwardingClientCallListener.SimpleForwardingClientCallListener<RespT>(responseListener) {
+            @Override
+            public void onClose(Status status, Metadata metadata) {
+                handleAuthStatusCodes(status);
+
+                super.onClose(status, metadata);
+            }
+        };
+    }
+
+    private Metadata injectInternalToken(Metadata metadata) {
+        final String authHeader = metadata.get(GrpcHeader.AUTHORIZATION);
+
+        if(authHeader == null || authHeader.isEmpty()) {
+            final String internalToken = jwtService.getInternal();
+            metadata.put(GrpcHeader.AUTHORIZATION, internalToken);
+        }
+
+        return metadata;
+    }
+
+    private void handleAuthStatusCodes(Status status) {
+        if(status.getCode().equals(Status.UNAUTHENTICATED.getCode())) {
+            logger.error("Grpc call is unauthenticated.", status.getCause());
+        }
+
+        if(status.getCode().equals(Status.PERMISSION_DENIED.getCode())) {
+            logger.error("Grpc call is unauthorized.", status.getCause());
+        }
     }
 }

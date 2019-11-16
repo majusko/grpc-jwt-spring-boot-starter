@@ -58,10 +58,9 @@ public class JwtService {
      * @return String version of your internal JWT token.
      */
     public String getInternal() {
+        final double refreshThresholdValue = properties.getExpirationSec() * REFRESH_TIME_THRESHOLD;
 
-        final long refreshThresholdValue = Double.valueOf(properties.getExpirationSec() * REFRESH_TIME_THRESHOLD).longValue();
-
-        if (LocalDateTime.now().plusSeconds(refreshThresholdValue).isAfter(internal.getExpiration())) {
+        if (LocalDateTime.now().plusSeconds((long) refreshThresholdValue).isAfter(internal.getExpiration())) {
             refreshInternalToken();
         }
 

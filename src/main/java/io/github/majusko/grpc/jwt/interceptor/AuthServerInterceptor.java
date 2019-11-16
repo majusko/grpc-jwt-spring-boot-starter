@@ -1,8 +1,8 @@
 package io.github.majusko.grpc.jwt.interceptor;
 
 import com.google.common.collect.Sets;
-import io.github.majusko.grpc.jwt.data.Allowed;
-import io.github.majusko.grpc.jwt.data.AuthContextData;
+import io.github.majusko.grpc.jwt.data.AllowedMethod;
+import io.github.majusko.grpc.jwt.data.JwtContextData;
 import io.github.majusko.grpc.jwt.data.GrpcHeader;
 import io.github.majusko.grpc.jwt.data.GrpcJwtContext;
 import io.github.majusko.grpc.jwt.exception.AuthException;
@@ -22,8 +22,8 @@ import java.util.stream.Collectors;
 @GRpcGlobalInterceptor
 public class AuthServerInterceptor implements ServerInterceptor {
 
-    private final static String GRPC_FIELD_MODIFIER = "_";
-    private final static String BEARER = "Bearer";
+    private static final String GRPC_FIELD_MODIFIER = "_";
+    private static final String BEARER = "Bearer";
     private static final ServerCall.Listener NOOP_LISTENER = new ServerCall.Listener() {
     };
 
@@ -46,7 +46,7 @@ public class AuthServerInterceptor implements ServerInterceptor {
         ServerCall<ReqT, RespT> call, Metadata metadata, ServerCallHandler<ReqT, RespT> next
     ) {
         try {
-            final AuthContextData contextData = parseAuthContextData(metadata);
+            final JwtContextData contextData = parseAuthContextData(metadata);
             final Context context = Context.current().withValue(GrpcJwtContext.CONTEXT_DATA_KEY, contextData);
 
             return buildListener(call, metadata, next, context, contextData);
@@ -62,7 +62,7 @@ public class AuthServerInterceptor implements ServerInterceptor {
         Metadata metadata,
         ServerCallHandler<ReqT, RespT> next,
         Context context,
-        AuthContextData contextData
+        JwtContextData contextData
     ) {
         final ServerCall.Listener<ReqT> customDelegate = Contexts.interceptCall(context, call, metadata, next);
 
@@ -96,14 +96,14 @@ public class AuthServerInterceptor implements ServerInterceptor {
         };
     }
 
-    private <ReqT> void validateAnnotatedMethods(ReqT request, AuthContextData contextData, String methodName) {
+    private <ReqT> void validateAnnotatedMethods(ReqT request, JwtContextData contextData, String methodName) {
         if(!validateExposedAnnotation(contextData, methodName)) {
             validateAllowedAnnotation(request, contextData, methodName);
         }
     }
 
     @SuppressWarnings("unchecked")
-    private boolean validateExposedAnnotation(AuthContextData contextData, String methodName) {
+    private boolean validateExposedAnnotation(JwtContextData contextData, String methodName) {
         final Set<String> exposedToEnvironments = allowedCollector.getExposedEnv(methodName).orElse(Sets.newHashSet());
         final boolean methodIsExposed = Arrays.stream(environment.getActiveProfiles())
             .anyMatch(exposedToEnvironments::contains);
@@ -121,39 +121,34 @@ public class AuthServerInterceptor implements ServerInterceptor {
         return false;
     }
 
-    private <ReqT> void validateAllowedAnnotation(ReqT request, AuthContextData contextData, String methodName) {
+    private <ReqT> void validateAllowedAnnotation(ReqT request, JwtContextData contextData, String methodName) {
         allowedCollector.getAllowedAuth(methodName)
             .ifPresent(value -> authorizeOwnerOrRoles(request, contextData, value));
     }
 
-    private <ReqT> void authorizeOwnerOrRoles(ReqT request, AuthContextData contextData, Allowed allowed) {
+    private <ReqT> void authorizeOwnerOrRoles(ReqT request, JwtContextData contextData, AllowedMethod allowedMethod) {
         if(contextData == null) throw new AuthException("Missing JWT data.");
-        if(allowed.getUserId() != null && !allowed.getUserId().isEmpty()) {
-            try {
-                final String userId = parseOwner(request, allowed.getUserId());
-
-                authorizeOwner(userId, new HashSet<>(allowed.getRoles()), contextData);
-            } catch(NoSuchFieldException | IllegalAccessException e) {
-                throw new AuthException("Missing field.");
-            }
+        if(allowedMethod.getOwnerField().isEmpty()) {
+            validateRoles(new HashSet<>(allowedMethod.getRoles()), contextData.getRoles());
         } else {
-            validateRoles(new HashSet<>(allowed.getRoles()), contextData.getRoles());
+            authorizeOwner(request, contextData, allowedMethod);
         }
     }
 
-    private <ReqT> String parseOwner(ReqT request, String fieldName) throws NoSuchFieldException,
-        IllegalAccessException {
-        final Field field = request.getClass().getDeclaredField(fieldName + GRPC_FIELD_MODIFIER);
-        field.setAccessible(true);
-        return String.valueOf(field.get(request));
+    private <ReqT> String parseOwner(ReqT request, String fieldName) {
+        try {
+            final Field field = request.getClass().getDeclaredField(fieldName + GRPC_FIELD_MODIFIER);
+            field.setAccessible(true);
+            return String.valueOf(field.get(request));
+        } catch(NoSuchFieldException | IllegalAccessException e) {
+            throw new AuthException("Missing owner field.");
+        }
     }
 
-    private void authorizeOwner(String uid, Set<String> required, AuthContextData contextData) {
-        if(contextData == null || contextData.getUserId() == null || contextData.getUserId().isEmpty()) {
-            throw new AuthException("Owner field is missing.");
-        }
+    private <ReqT> void authorizeOwner(ReqT request, JwtContextData jwtContext, AllowedMethod allowedMethod) {
+        final String uid = parseOwner(request, allowedMethod.getOwnerField());
 
-        if(!contextData.getUserId().equals(uid)) validateRoles(required, contextData.getRoles());
+        if(!jwtContext.getUserId().equals(uid)) validateRoles(new HashSet<>(allowedMethod.getRoles()), jwtContext.getRoles());
     }
 
     private void validateRoles(Set<String> requiredRoles, Set<String> userRoles) {
@@ -170,7 +165,7 @@ public class AuthServerInterceptor implements ServerInterceptor {
     }
 
     @SuppressWarnings("unchecked")
-    private AuthContextData parseAuthContextData(Metadata metadata) {
+    private JwtContextData parseAuthContextData(Metadata metadata) {
         try {
             final String authHeaderData = metadata.get(GrpcHeader.AUTHORIZATION);
 
@@ -182,7 +177,7 @@ public class AuthServerInterceptor implements ServerInterceptor {
             final Claims jwtBody = Jwts.parser().setSigningKey(jwtService.getKey()).parseClaimsJws(token).getBody();
             final List<String> roles = (List<String>) jwtBody.get(JwtService.JWT_ROLES, List.class);
 
-            return new AuthContextData(token, jwtBody.getSubject(), Sets.newHashSet(roles), jwtBody);
+            return new JwtContextData(token, jwtBody.getSubject(), Sets.newHashSet(roles), jwtBody);
         } catch(JwtException | IllegalArgumentException e) {
             throw new UnauthenticatedException(e.getMessage(), e);
         }

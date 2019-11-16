@@ -6,7 +6,7 @@ import lombok.AllArgsConstructor;
 import java.util.Set;
 
 @AllArgsConstructor
-public class AuthContextData {
+public class JwtContextData {
     private final String jwt;
     private final String userId;
     private final Set<String> roles;

@@ -85,7 +85,7 @@ service ExampleService {
 
 message Empty {}
 message GetExample {
-    string userId = 1;
+    string ownerField = 1;
 }
 ```
 
@@ -124,12 +124,12 @@ We know 2 types of annotation: `@Allow` and `@Expose`
 
 #### `@Allow` 
 * `roles` -> Algorithm used for signing the JWT token. Default: `HmacSHA256`
-* `ownerField` -> Example: `userId`. _Optional field_. Your request will be parsed and if the mentioned field is found, it will compare equality with JWT token subject(e.g.: userId). By this comparison, you can be sure that any operation with that field is made by the owner of the token. If the fields don't match and data are owned by another user, specified roles will be checked after. 
+* `ownerField` -> Example: `ownerField`. _Optional field_. Your request will be parsed and if the mentioned field is found, it will compare equality with JWT token subject(e.g.: ownerField). By this comparison, you can be sure that any operation with that field is made by the owner of the token. If the fields don't match and data are owned by another user, specified roles will be checked after. 
  
  
  _**Example use case of `ownerField`**: Imagine, you want to list purchased orders of some user. 
  You might want to reuse the exact same API for back-office and also for that particular user who created the orders.
- With `ownerField` you can check for the owner and also for some role if owner userId in JWT token is different._
+ With `ownerField` you can check for the owner and also for some role if owner ownerField in JWT token is different._
 
 #### `@Exposed` 
 * `environments` List of environments (Spring Profiles) where you can access the gRPC without checking for owner or roles.
@@ -139,7 +139,7 @@ Use case: Debug endpoint for the client/front-end development team.
 @GRpcService
 public class ExampleServiceImpl extends ExampleServiceGrpc.ExampleServiceImplBase {
 
-    @Allow(ownerField="userId", roles = GrpcRole.INTERNAL)
+    @Allow(ownerField="ownerField", roles = GrpcRole.INTERNAL)
     @Exposed(environments={"dev","qa"})
     public void getExample(GetExample request, StreamObserver<Empty> response) {
         //...

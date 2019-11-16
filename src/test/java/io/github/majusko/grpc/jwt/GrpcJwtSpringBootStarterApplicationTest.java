@@ -4,7 +4,7 @@ import com.google.common.collect.Sets;
 import com.google.protobuf.Empty;
 import io.github.majusko.grpc.jwt.annotation.Allow;
 import io.github.majusko.grpc.jwt.annotation.Exposed;
-import io.github.majusko.grpc.jwt.data.AuthContextData;
+import io.github.majusko.grpc.jwt.data.JwtContextData;
 import io.github.majusko.grpc.jwt.data.GrpcHeader;
 import io.github.majusko.grpc.jwt.data.GrpcJwtContext;
 import io.github.majusko.grpc.jwt.interceptor.AllowedCollector;
@@ -295,12 +295,11 @@ public class GrpcJwtSpringBootStarterApplicationTest {
 
 	@Test
 	public void testEmptyUserIdInToken() throws IOException {
-		final String token = jwtService.generate(new JwtData("", Sets.newHashSet(ExampleService.ADMIN)));
-
+		final String token = jwtService.generate(new JwtData("", Sets.newHashSet("some-other-role")));
 		final ManagedChannel channel = initTestServer(new ExampleService());
 		final ExampleServiceGrpc.ExampleServiceBlockingStub stub = ExampleServiceGrpc.newBlockingStub(channel);
-
 		final Metadata header = new Metadata();
+
 		header.put(GrpcHeader.AUTHORIZATION, token);
 
 		final ExampleServiceGrpc.ExampleServiceBlockingStub injectedStub = MetadataUtils.attachHeaders(stub, header);
@@ -387,7 +386,7 @@ public class GrpcJwtSpringBootStarterApplicationTest {
 	}
 
 	@Test
-	public void testEmptyOwnerFieldInAnnotationSoRolesAreValidated() throws IOException {
+	public void testMissingOwnerFieldInAnnotationSoRolesAreValidated() throws IOException {
 		final String token = jwtService
 			.generate(new JwtData("random-user-id", Sets.newHashSet(ExampleService.ADMIN)));
 
@@ -432,7 +431,7 @@ class ExampleService extends ExampleServiceGrpc.ExampleServiceImplBase {
 	@Allow(ownerField = "userId", roles = {GrpcRole.INTERNAL, ADMIN})
 	public void getExample(Example.GetExampleRequest request, StreamObserver<Empty> response) {
 
-		AuthContextData authContext = GrpcJwtContext.get().orElseThrow(RuntimeException::new);
+		JwtContextData authContext = GrpcJwtContext.get().orElseThrow(RuntimeException::new);
 
 		Assert.assertNotNull(authContext.getJwt());
 		Assert.assertTrue(authContext.getJwtClaims().size() > 0);
@@ -471,7 +470,7 @@ class ExampleService extends ExampleServiceGrpc.ExampleServiceImplBase {
 	}
 
 	@Override
-	@Allow(ownerField = "", roles = {ADMIN})
+	@Allow(roles = {ADMIN})
 	public void someAction(Example.GetExampleRequest request, StreamObserver<Empty> response) {
 
 		response.onNext(Empty.getDefaultInstance());
