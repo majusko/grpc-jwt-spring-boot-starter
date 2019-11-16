@@ -4,7 +4,12 @@ import com.google.common.collect.Sets;
 import com.google.protobuf.Empty;
 import io.github.majusko.grpc.jwt.annotation.Allow;
 import io.github.majusko.grpc.jwt.annotation.Exposed;
-import io.github.majusko.grpc.jwt.interceptor.*;
+import io.github.majusko.grpc.jwt.data.AuthContextData;
+import io.github.majusko.grpc.jwt.data.GrpcHeader;
+import io.github.majusko.grpc.jwt.data.GrpcJwtContext;
+import io.github.majusko.grpc.jwt.interceptor.AllowedCollector;
+import io.github.majusko.grpc.jwt.interceptor.AuthClientInterceptor;
+import io.github.majusko.grpc.jwt.interceptor.AuthServerInterceptor;
 import io.github.majusko.grpc.jwt.interceptor.proto.Example;
 import io.github.majusko.grpc.jwt.interceptor.proto.ExampleServiceGrpc;
 import io.github.majusko.grpc.jwt.service.GrpcRole;
@@ -29,6 +34,8 @@ import org.springframework.test.context.junit4.SpringRunner;
 
 import java.io.IOException;
 import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
+import java.lang.reflect.Method;
 
 @RunWith(SpringRunner.class)
 @SpringBootTest
@@ -312,13 +319,47 @@ public class GrpcJwtSpringBootStarterApplicationTest {
 	}
 
 	@Test
+	public void testExpiredInternalToken() throws IOException, NoSuchFieldException, IllegalAccessException,
+		NoSuchMethodException, InvocationTargetException, InterruptedException {
+
+		final GrpcJwtProperties customProperties = new GrpcJwtProperties();
+		final Field field = customProperties.getClass().getDeclaredField("expirationSec");
+		field.setAccessible(true);
+		field.set(customProperties, 1L);
+
+		final Field propertyField = jwtService.getClass().getDeclaredField("properties");
+		propertyField.setAccessible(true);
+		final GrpcJwtProperties existingProperties = (GrpcJwtProperties) propertyField.get(jwtService);
+		propertyField.set(jwtService, customProperties);
+
+		final Method refreshMethod = jwtService.getClass().getDeclaredMethod("refreshInternalToken");
+		refreshMethod.setAccessible(true);
+
+		refreshMethod.invoke(jwtService);
+
+		final ManagedChannel channel = initTestServer(new ExampleService());
+		final Channel interceptedChannel = ClientInterceptors.intercept(channel, authClientInterceptor);
+		final ExampleServiceGrpc.ExampleServiceBlockingStub stub = ExampleServiceGrpc.newBlockingStub(interceptedChannel);
+		final Example.GetExampleRequest request = Example.GetExampleRequest.newBuilder()
+			.setUserId("other-user-id").build();
+
+		Thread.sleep(2000);
+
+		final Empty response = stub.getExample(request);
+
+		Assert.assertNotNull(response);
+
+		propertyField.set(jwtService, existingProperties);
+		refreshMethod.invoke(jwtService);
+	}
+
+	@Test
 	public void testExpiredToken() throws IOException, NoSuchFieldException, IllegalAccessException {
 
 		final GrpcJwtProperties customProperties = new GrpcJwtProperties();
 		final Field field = customProperties.getClass().getDeclaredField("expirationSec");
 		field.setAccessible(true);
 		field.set(customProperties, -10L);
-
 
 		final JwtService customJwtService = new JwtService(environment, customProperties);
 		final String token = customJwtService.generate(new JwtData("lala", Sets.newHashSet(ExampleService.ADMIN)));

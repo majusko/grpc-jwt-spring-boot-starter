@@ -1,4 +1,4 @@
-package io.github.majusko.grpc.jwt.interceptor;
+package io.github.majusko.grpc.jwt.data;
 
 import io.jsonwebtoken.Claims;
 import lombok.AllArgsConstructor;

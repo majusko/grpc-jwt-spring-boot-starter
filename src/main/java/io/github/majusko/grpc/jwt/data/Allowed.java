@@ -1,4 +1,4 @@
-package io.github.majusko.grpc.jwt.collector;
+package io.github.majusko.grpc.jwt.data;
 
 import java.util.Set;
 
