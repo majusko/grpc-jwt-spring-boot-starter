@@ -7,7 +7,9 @@ import io.github.majusko.grpc.jwt.annotation.Exposed;
 import io.github.majusko.grpc.jwt.data.AuthContextData;
 import io.github.majusko.grpc.jwt.data.GrpcHeader;
 import io.github.majusko.grpc.jwt.data.GrpcJwtContext;
-import io.github.majusko.grpc.jwt.interceptor.*;
+import io.github.majusko.grpc.jwt.interceptor.AllowedCollector;
+import io.github.majusko.grpc.jwt.interceptor.AuthClientInterceptor;
+import io.github.majusko.grpc.jwt.interceptor.AuthServerInterceptor;
 import io.github.majusko.grpc.jwt.interceptor.proto.Example;
 import io.github.majusko.grpc.jwt.interceptor.proto.ExampleServiceGrpc;
 import io.github.majusko.grpc.jwt.service.GrpcRole;
@@ -317,7 +319,7 @@ public class GrpcJwtSpringBootStarterApplicationTest {
 	}
 
 	@Test
-	public void testExpiredToken() throws IOException, NoSuchFieldException, IllegalAccessException,
+	public void testExpiredInternalToken() throws IOException, NoSuchFieldException, IllegalAccessException,
 		NoSuchMethodException, InvocationTargetException, InterruptedException {
 
 		final GrpcJwtProperties customProperties = new GrpcJwtProperties();
@@ -349,6 +351,39 @@ public class GrpcJwtSpringBootStarterApplicationTest {
 
 		propertyField.set(jwtService, existingProperties);
 		refreshMethod.invoke(jwtService);
+	}
+
+	@Test
+	public void testExpiredToken() throws IOException, NoSuchFieldException, IllegalAccessException {
+
+		final GrpcJwtProperties customProperties = new GrpcJwtProperties();
+		final Field field = customProperties.getClass().getDeclaredField("expirationSec");
+		field.setAccessible(true);
+		field.set(customProperties, -10L);
+
+		final JwtService customJwtService = new JwtService(environment, customProperties);
+		final String token = customJwtService.generate(new JwtData("lala", Sets.newHashSet(ExampleService.ADMIN)));
+
+		final ManagedChannel channel = initTestServer(new ExampleService());
+		final Channel interceptedChannel = ClientInterceptors.intercept(channel, authClientInterceptor);
+		final ExampleServiceGrpc.ExampleServiceBlockingStub stub = ExampleServiceGrpc.newBlockingStub(interceptedChannel);
+
+		final Metadata header = new Metadata();
+		header.put(GrpcHeader.AUTHORIZATION, token);
+
+		final ExampleServiceGrpc.ExampleServiceBlockingStub injectedStub = MetadataUtils.attachHeaders(stub, header);
+		final Example.GetExampleRequest request = Example.GetExampleRequest.newBuilder()
+			.setUserId("other-user-id").build();
+
+		Status status = Status.OK;
+
+		try {
+			final Empty ignore = injectedStub.getExample(request);
+		} catch (StatusRuntimeException e) {
+			status = e.getStatus();
+		}
+
+		Assert.assertEquals(Status.UNAUTHENTICATED.getCode(), status.getCode());
 	}
 
 	@Test
