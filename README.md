@@ -8,6 +8,7 @@
 Extending great [gRPC library](https://github.com/LogNet/grpc-spring-boot-starter) with Auth module. Easy implementation using a simple annotations similar to ones used in Spring Security module.
 
 ## Quick Start
+(Try example project: [gRPC example project](https://github.com/majusko/grpc-example) in Kotlin.)
 
 Simple start consist only from 3 simple steps.
 
