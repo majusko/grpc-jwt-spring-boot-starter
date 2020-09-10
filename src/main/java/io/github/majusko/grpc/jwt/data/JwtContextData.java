@@ -1,6 +1,6 @@
 package io.github.majusko.grpc.jwt.data;
 
-import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.*;
 import lombok.AllArgsConstructor;
 
 import java.util.Set;
