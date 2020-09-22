@@ -1,5 +1,6 @@
 # Spring boot starter for [gRPC framework](https://grpc.io/) with [JWT authorization](https://jwt.io/) - gRPC Java JWT
 
+[![Maven Central](https://maven-badges.herokuapp.com/maven-central/io.github.majusko/grpc-jwt-spring-boot-starter/badge.svg)](https://search.maven.org/search?q=g:io.github.majusko)
 [![Release](https://jitpack.io/v/majusko/grpc-jwt-spring-boot-starter.svg)](https://jitpack.io/#majusko/grpc-jwt-spring-boot-starter)
 [![Build Status](https://travis-ci.com/majusko/grpc-jwt-spring-boot-starter.svg?branch=master)](https://travis-ci.com/majusko/grpc-jwt-spring-boot-starter)
 [![Test Coverage](https://codecov.io/gh/majusko/grpc-jwt-spring-boot-starter/branch/master/graph/badge.svg)](https://codecov.io/gh/majusko/grpc-jwt-spring-boot-starter/branch/master)
@@ -15,15 +16,6 @@ Simple start consist only from 3 simple steps.
 (If you never used [gRPC library](https://github.com/LogNet/grpc-spring-boot-starter) before, have a look on this [basic setup](https://github.com/LogNet/grpc-spring-boot-starter#4-show-case) first.)
 
 #### 1. Add Maven dependency
-
-```xml
-<repositories>
-    <repository>
-        <id>jitpack.io</id>
-        <url>https://jitpack.io</url>
-    </repository>
-</repositories>
-```
 
 ```xml
 <dependency>
