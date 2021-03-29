@@ -407,6 +407,18 @@ public class GrpcJwtSpringBootStarterApplicationTest {
         Assertions.assertNotNull(response);
     }
 
+
+    @Test
+    public void testPublicAccess() throws IOException {
+        final ManagedChannel channel = initTestServer(new ExampleService());
+        final ExampleServiceGrpc.ExampleServiceBlockingStub stub = ExampleServiceGrpc.newBlockingStub(channel);
+        final Example.GetExampleRequest request = Example.GetExampleRequest.newBuilder()
+            .setUserId("other-user-id").build();
+        final Empty response = stub.publicAction(request);
+
+        Assertions.assertNotNull(response);
+    }
+
     private ManagedChannel initTestServer(BindableService service) throws IOException {
 
         final String serverName = InProcessServerBuilder.generateName();
@@ -474,6 +486,13 @@ class ExampleService extends ExampleServiceGrpc.ExampleServiceImplBase {
     @Override
     @Allow(roles = {ADMIN})
     public void someAction(Example.GetExampleRequest request, StreamObserver<Empty> response) {
+
+        response.onNext(Empty.getDefaultInstance());
+        response.onCompleted();
+    }
+
+    @Override
+    public void publicAction(Example.GetExampleRequest request, StreamObserver<Empty> response) {
 
         response.onNext(Empty.getDefaultInstance());
         response.onCompleted();

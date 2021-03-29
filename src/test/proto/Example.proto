@@ -9,6 +9,7 @@ service ExampleService {
     rpc SaveExample (google.protobuf.Empty) returns (google.protobuf.Empty);
     rpc DeleteExample (GetExampleRequest) returns (google.protobuf.Empty);
     rpc SomeAction (GetExampleRequest) returns (google.protobuf.Empty);
+    rpc PublicAction (GetExampleRequest) returns (google.protobuf.Empty);
 }
 
 message GetExampleRequest {

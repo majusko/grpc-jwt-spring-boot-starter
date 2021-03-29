@@ -157,7 +157,11 @@ public class AuthServerInterceptor implements ServerInterceptor {
             throw new AuthException("Endpoint does not have specified roles.");
         }
 
-        requiredRoles.retainAll(Objects.requireNonNull(userRoles));
+        if (userRoles == null) {
+            throw new AuthException("User doesn't have any roles.");
+        }
+
+        requiredRoles.retainAll(userRoles);
 
         if(requiredRoles.isEmpty()) {
             throw new AuthException("Missing required permission roles.");
@@ -174,7 +178,7 @@ public class AuthServerInterceptor implements ServerInterceptor {
             }
 
             final String token = authHeaderData.replace(BEARER, "").trim();
-            final Claims jwtBody = Jwts.parser().setSigningKey(jwtService.getKey()).parseClaimsJws(token).getBody();
+            final Claims jwtBody = Jwts.parserBuilder().setSigningKey(jwtService.getKey()).build().parseClaimsJws(token).getBody();
             final List<String> roles = (List<String>) jwtBody.get(JwtService.JWT_ROLES, List.class);
 
             return new JwtContextData(token, jwtBody.getSubject(), Sets.newHashSet(roles), jwtBody);
