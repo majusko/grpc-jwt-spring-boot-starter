@@ -135,7 +135,6 @@ public class GrpcJwtSpringBootStarterApplicationTest {
         Assertions.assertEquals(Status.UNAUTHENTICATED.getCode(), status.getCode());
     }
 
-
     @Test
     public void testMissingAuth() throws IOException {
         final ManagedChannel channel = initTestServer(new ExampleService());
@@ -145,6 +144,22 @@ public class GrpcJwtSpringBootStarterApplicationTest {
 
         try {
             final Empty ignored = stub.getExample(Example.GetExampleRequest.newBuilder().build());
+        } catch (StatusRuntimeException e) {
+            status = e.getStatus();
+        }
+
+        Assertions.assertEquals(Status.PERMISSION_DENIED.getCode(), status.getCode());
+    }
+
+    @Test
+    public void testMissingAuthForSimpleAllow() throws IOException {
+        final ManagedChannel channel = initTestServer(new ExampleService());
+        final ExampleServiceGrpc.ExampleServiceBlockingStub stub = ExampleServiceGrpc.newBlockingStub(channel);
+
+        Status status = Status.OK;
+
+        try {
+            final Empty ignored = stub.someAction(Example.GetExampleRequest.newBuilder().build());
         } catch (StatusRuntimeException e) {
             status = e.getStatus();
         }
